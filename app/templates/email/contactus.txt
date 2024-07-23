@@ -1,0 +1,9 @@
+Dear Admin,
+
+You got this msg from {{ email }}.
+and their msg is:
+{{ msg }}
+and reach out to them
+
+Sincerely,
+Front-end team
