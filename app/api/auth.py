@@ -1,7 +1,7 @@
 import sqlalchemy as sa
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from app import db
-from app.models import User
+from app.models import Customer
 from app.api.errors import error_response
 
 basic_auth = HTTPBasicAuth()
@@ -10,7 +10,7 @@ token_auth = HTTPTokenAuth()
 
 @basic_auth.verify_password
 def verify_password(username, password):
-    user = db.session.scalar(sa.select(User).where(User.username == username))
+    user = db.session.scalar(sa.select(Customer).where(Customer.username == username))
     if user and user.check_password(password):
         return user
 
@@ -22,7 +22,7 @@ def basic_auth_error(status):
 
 @token_auth.verify_token
 def verify_token(token):
-    return User.check_token(token) if token else None
+    return Customer.check_token(token) if token else None
 
 
 @token_auth.error_handler

@@ -1,8 +1,8 @@
-"""inital commit
+"""initial commit
 
-Revision ID: 21462983c2a2
-Revises: 834b1a697901
-Create Date: 2024-07-14 23:35:23.427057
+Revision ID: 7454ebe0f4a6
+Revises: 
+Create Date: 2024-07-25 08:37:05.926175
 
 """
 from alembic import op
@@ -10,8 +10,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '21462983c2a2'
-down_revision = '834b1a697901'
+revision = '7454ebe0f4a6'
+down_revision = None
 branch_labels = None
 depends_on = None
 
@@ -33,25 +33,28 @@ def upgrade():
 
     op.create_table('customer',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('customer_name', sa.String(length=64), nullable=False),
+    sa.Column('username', sa.String(length=64), nullable=False),
+    sa.Column('customer_full_name', sa.String(length=64), nullable=False),
+    sa.Column('customer_company_name', sa.String(length=64), nullable=False),
     sa.Column('customer_email', sa.String(length=120), nullable=False),
-    sa.Column('customer_phone', sa.String(length=120), nullable=False),
+    sa.Column('customer_phone', sa.String(length=120), nullable=True),
     sa.Column('password_hash', sa.String(length=256), nullable=True),
     sa.Column('token', sa.String(length=32), nullable=True),
     sa.Column('token_expiration', sa.DateTime(), nullable=True),
-    sa.Column('plan_id', sa.Integer(), nullable=False),
+    sa.Column('plan_id', sa.Integer(), nullable=True),
     sa.Column('domain_count', sa.Integer(), nullable=True),
     sa.Column('api_call_count', sa.Integer(), nullable=True),
-    sa.Column('api_call_limit', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['plan_id'], ['plan.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('customer', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_customer_customer_company_name'), ['customer_company_name'], unique=False)
         batch_op.create_index(batch_op.f('ix_customer_customer_email'), ['customer_email'], unique=True)
-        batch_op.create_index(batch_op.f('ix_customer_customer_name'), ['customer_name'], unique=True)
+        batch_op.create_index(batch_op.f('ix_customer_customer_full_name'), ['customer_full_name'], unique=False)
         batch_op.create_index(batch_op.f('ix_customer_customer_phone'), ['customer_phone'], unique=True)
         batch_op.create_index(batch_op.f('ix_customer_plan_id'), ['plan_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_customer_token'), ['token'], unique=True)
+        batch_op.create_index(batch_op.f('ix_customer_username'), ['username'], unique=False)
 
     op.create_table('domain',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -64,6 +67,32 @@ def upgrade():
     with op.batch_alter_table('domain', schema=None) as batch_op:
         batch_op.create_index(batch_op.f('ix_domain_customer_id'), ['customer_id'], unique=False)
         batch_op.create_index(batch_op.f('ix_domain_domain_name'), ['domain_name'], unique=True)
+
+    op.create_table('notification',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=128), nullable=False),
+    sa.Column('customer_id', sa.Integer(), nullable=False),
+    sa.Column('timestamp', sa.Float(), nullable=False),
+    sa.Column('payload_json', sa.Text(), nullable=False),
+    sa.ForeignKeyConstraint(['customer_id'], ['customer.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('notification', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_notification_customer_id'), ['customer_id'], unique=False)
+        batch_op.create_index(batch_op.f('ix_notification_name'), ['name'], unique=False)
+        batch_op.create_index(batch_op.f('ix_notification_timestamp'), ['timestamp'], unique=False)
+
+    op.create_table('task',
+    sa.Column('id', sa.String(length=36), nullable=False),
+    sa.Column('name', sa.String(length=128), nullable=False),
+    sa.Column('description', sa.String(length=128), nullable=True),
+    sa.Column('customer_id', sa.Integer(), nullable=False),
+    sa.Column('complete', sa.Boolean(), nullable=False),
+    sa.ForeignKeyConstraint(['customer_id'], ['customer.id'], ),
+    sa.PrimaryKeyConstraint('id')
+    )
+    with op.batch_alter_table('task', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_task_name'), ['name'], unique=False)
 
     op.create_table('activity',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -94,17 +123,29 @@ def downgrade():
         batch_op.drop_index(batch_op.f('ix_activity_activity_msg'))
 
     op.drop_table('activity')
+    with op.batch_alter_table('task', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_task_name'))
+
+    op.drop_table('task')
+    with op.batch_alter_table('notification', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_notification_timestamp'))
+        batch_op.drop_index(batch_op.f('ix_notification_name'))
+        batch_op.drop_index(batch_op.f('ix_notification_customer_id'))
+
+    op.drop_table('notification')
     with op.batch_alter_table('domain', schema=None) as batch_op:
         batch_op.drop_index(batch_op.f('ix_domain_domain_name'))
         batch_op.drop_index(batch_op.f('ix_domain_customer_id'))
 
     op.drop_table('domain')
     with op.batch_alter_table('customer', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_customer_username'))
         batch_op.drop_index(batch_op.f('ix_customer_token'))
         batch_op.drop_index(batch_op.f('ix_customer_plan_id'))
         batch_op.drop_index(batch_op.f('ix_customer_customer_phone'))
-        batch_op.drop_index(batch_op.f('ix_customer_customer_name'))
+        batch_op.drop_index(batch_op.f('ix_customer_customer_full_name'))
         batch_op.drop_index(batch_op.f('ix_customer_customer_email'))
+        batch_op.drop_index(batch_op.f('ix_customer_customer_company_name'))
 
     op.drop_table('customer')
     with op.batch_alter_table('plan', schema=None) as batch_op:

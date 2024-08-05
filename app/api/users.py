@@ -1,7 +1,7 @@
 import sqlalchemy as sa
 from flask import request, url_for, abort
 from app import db
-from app.models import User
+from app.models import Customer
 from app.api import bp
 from app.api.auth import token_auth
 from app.api.errors import bad_request
@@ -9,36 +9,41 @@ from app.api.errors import bad_request
 
 @bp.route('/users/<int:id>', methods=['GET'])
 @token_auth.login_required
-def get_user(id):
-    return db.get_or_404(User, id).to_dict()
+def get_customer(id):
+    return db.get_or_404(Customer, id).to_dict()
 
 
 @bp.route('/users', methods=['GET'])
 @token_auth.login_required
-def get_users():
+def get_customers():
     page = request.args.get('page', 1, type=int)
     per_page = min(request.args.get('per_page', 10, type=int), 100)
-    return User.to_collection_dict(sa.select(User), page, per_page,
-                                   'api.get_users')
+    return Customer.to_collection_dict(sa.select(Customer), page, per_page,
+                                   'api.get_customers')
 
 
+
+
+
+
+""""
 @bp.route('/users/<int:id>/followers', methods=['GET'])
 @token_auth.login_required
 def get_followers(id):
-    user = db.get_or_404(User, id)
+    user = db.get_or_404(Customer, id)
     page = request.args.get('page', 1, type=int)
     per_page = min(request.args.get('per_page', 10, type=int), 100)
-    return User.to_collection_dict(user.followers.select(), page, per_page,
+    return Customer.to_collection_dict(user.followers.select(), page, per_page,
                                    'api.get_followers', id=id)
 
 
 @bp.route('/users/<int:id>/following', methods=['GET'])
 @token_auth.login_required
 def get_following(id):
-    user = db.get_or_404(User, id)
+    user = db.get_or_404(Customer, id)
     page = request.args.get('page', 1, type=int)
     per_page = min(request.args.get('per_page', 10, type=int), 100)
-    return User.to_collection_dict(user.following.select(), page, per_page,
+    return Customer.to_collection_dict(user.following.select(), page, per_page,
                                    'api.get_following', id=id)
 
 
@@ -78,4 +83,4 @@ def update_user(id):
         return bad_request('please use a different email address')
     user.from_dict(data, new_user=False)
     db.session.commit()
-    return user.to_dict()
+    return user.to_dict()"""
