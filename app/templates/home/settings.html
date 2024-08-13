@@ -1,0 +1,154 @@
+{% extends 'layouts/base-presentation.html' %}
+
+{% block title %} Home {% endblock title %}
+
+<!-- Specific CSS goes HERE -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block body_class %} index-page {% endblock body_class %}
+
+{% block content %}
+
+<div class="container my-4">
+    <h2>Settings</h2>
+    
+    <!-- Plan Management -->
+    <div class="card my-4">
+        <div class="card-header">
+            <h5>Plan Management</h5>
+        </div>
+        <div class="card-body">
+            <p>Current Plan: <strong>{{ current_plan.plan_name }}</strong></p>
+            <form action="{{ url_for('main.update_plan') }}" method="POST">
+                <div class="mb-3">
+                    <label for="planSelect" class="form-label">Update Plan</label>
+                    <select class="form-select" id="planSelect" name="plan">
+                        <option value=1 {% if current_plan.plan_name == 'Free' %}selected{% endif %}>Free</option>
+                        <option value=2 {% if current_plan.plan_name == 'Bronze' %}selected{% endif %}>Bronze</option>
+                        <option value=3 {% if current_plan == 'Gold' %}selected{% endif %}>Gold</option>
+                        <option value=4 {% if current_plan == 'Diamond' %}selected{% endif %}>Diamond</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Update Plan</button>
+                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#cancelPlanModal">Cancel Plan</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Domain Management -->
+    <div class="card my-4">
+        <div class="card-header">
+            <h5>Domain Management</h5>
+        </div>
+        <div class="card-body">
+            <ul class="list-group mb-3">
+                {% for domain in domains %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    {{ domain.domain_name }}
+                    <div>
+                        <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editDomainModal{{ domain.id }}">Edit</button>
+                        <form action="{{ url_for('main.delete_domain', domain_id=domain.id) }}" method="POST" class="d-inline">
+                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                        </form>
+                    </div>
+                </li>
+                <div class="modal fade" id="editDomainModal{{ domain.id }}" tabindex="-1" aria-labelledby="editDomainModalLabel{{ domain.id }}" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editDomainModalLabel{{ domain.id }}">Edit Domain Information</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form action="{{ url_for('main.edit_domain', domain_id=domain.id) }}" method="POST">
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label for="domainName{{ domain.id }}" class="form-label">Domain Name</label>
+                                        <input type="text" class="form-control" id="domainName{{ domain.id }}" name="domain_name" value="{{ domain.domain_name }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="domainPlatform{{ domain.id }}" class="form-label">Domain Platform</label>
+                                        <select class="form-control" id="domainPlatform{{ domain.id }}" name="domain_platform" required>
+                                            <option value="wordpress" {% if domain.domain_platform == 'wordpress' %}selected{% endif %}>WordPress</option>
+                                        </select>                                    
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="domainName{{ domain.id }}" class="form-label">Domain Username</label>
+                                        <input type="text" class="form-control" id="domainName{{ domain.id }}" name="domain_username" value="{{ domain.domain_login_username }}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="domainName{{ domain.id }}" class="form-label">Domain Password</label>
+                                        <input type="text" class="form-control" id="domainName{{ domain.id }}" name="domain_password" value="{{ domain.domain_login_password }}" required>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    <button type="submit" class="btn btn-primary">Save changes</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </ul>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#AddDomainModal">ADD DOMAIN</button>
+            <div class="modal fade" id="AddDomainModal" tabindex="-1" aria-labelledby="AddDomainModal" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="AddDomainModal">Add Domain</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <form action="{{ url_for('main.add_domain') }}" method="POST">
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="domainInput" class="form-label">Domain Name</label>
+                                    <input type="text" class="form-control" id="domainInput" name="domain" placeholder="Enter domain name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="domainInput" class="form-label">Domain Platform</label>
+                                    <select class="form-control" id="domainPlatform" name="domain_platform" required>
+                                        <option value="wordpress" >WordPress</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="domainInput" class="form-label">Domain Username</label>
+                                    <input type="text" class="form-control" id="domainInput" name="domain_username" placeholder="Enter domain username" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="domainInput" class="form-label">Domain Password</label>
+                                    <input type="text" class="form-control" id="domainInput" name="domain_password" placeholder="Enter domain password" required>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary">Save</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Plan Modal -->
+<div class="modal fade" id="cancelPlanModal" tabindex="-1" aria-labelledby="cancelPlanModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="cancelPlanModalLabel">Confirm Plan Cancellation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to cancel your plan? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <form action="{{ url_for('main.cancel_plan') }}" method="POST">
+                    <button type="submit" class="btn btn-danger">Yes, Cancel Plan</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No, Keep My Plan</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

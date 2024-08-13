@@ -5,6 +5,7 @@ from models import seo_optimizer
 #from fastapi import HTTPException
 from pydantic import BaseModel, Field
 from enum import Enum
+from app.ai import bp
 
 
 class Engine(str, Enum):

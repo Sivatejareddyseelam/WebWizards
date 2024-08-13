@@ -296,20 +296,28 @@
               <p class="d-inline text-sm z-index-1 font-bold" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Login">Login</p>
             </a>
           </li>
-          {% else %}
-          <li class="nav-item ms-lg-auto">
-            <a class="nav-link nav-link-icon me-2" href="{{ url_for('auth.logout') }}">
-              <i class="fa fa-sign-out me-1"></i>
-              <p class="d-inline text-sm z-index-1 font-bold" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Logout">Logout</p>
-            </a>
-          </li>
-          {% endif %}
           <li class="nav-item my-auto ms-3 ms-lg-0">
             <a href="https://appseed.us/product/soft-ui-design-pro/flask/"
                target="_blank" 
                class="btn btn-sm  bg-white  btn-round mb-0 me-1 mt-2 mt-md-0">Get Started</a>
           </li>
-        </ul>
+          {% else %}
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <!-- Hamburger Menu Dropdown -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="navbar-toggler-icon"></span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="{{ url_for('main.edit_profile') }}">Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('main.settings') }}">Settings</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">Logout</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        {% endif %}
       </div>
     </div>
   </nav>

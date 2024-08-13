@@ -6,7 +6,7 @@ from time import time
 from typing import Optional
 import sqlalchemy as sa
 import sqlalchemy.orm as so
-from flask import current_app, url_for
+from flask import current_app, url_for, flash
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
@@ -45,10 +45,8 @@ class Plan(db.Model):
     plan_duration: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer)
     plan_domain_limit: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer)
     plan_api_call_limit: so.Mapped[Optional[int]] = so.mapped_column(sa.Integer)
-    plan_name: so.Mapped[str] = so.mapped_column(sa.String(120), index=True,
-                                             unique=True)
-    plan_type: so.Mapped[str] = so.mapped_column(sa.String(120), index=True,
-                                             unique=True)
+    plan_name: so.Mapped[str] = so.mapped_column(sa.String(120), index=True)
+    plan_type: so.Mapped[str] = so.mapped_column(sa.String(120), index=True)
     def __repr__(self):
         return '<Plan {}>'.format(self.body)
 
@@ -78,7 +76,6 @@ class Customer(PaginatedAPIMixin, UserMixin, db.Model):
     notifications: so.WriteOnlyMapped['Notification'] = so.relationship(
         back_populates='customer')
     tasks: so.WriteOnlyMapped['Task'] = so.relationship(back_populates='customer')
-    wordpress_auth: so.Mapped[Optional[str]] = so.mapped_column(sa.String(256))
 
     def __repr__(self):
         return '<Customer {}>'.format(self.username)
@@ -167,31 +164,45 @@ class Customer(PaginatedAPIMixin, UserMixin, db.Model):
             return True
     
 
-    def add_domain(self, name):
+    def add_domain(self, name, platform, user_name, password):
         plan = db.session.scalar(
             sa.select(Plan).where(Plan.id == self.plan_id))
         domain_limit = plan.plan_domain_limit
-        if self.domain_count + 1 > domain_limit:
-            return 404
+        if self.domain_count is not None:
+            if self.domain_count + 1 > domain_limit:
+                flash('exceeded domain limit!, danger')
+            else:
+                domain = db.session.scalar(
+                sa.select(Domain).where(Domain.domain_name == name))
+                if domain is not None:
+                    return 505
+                domain = Domain(domain_name=name, domain_start_date=datetime.now(timezone.utc), 
+                                domain_platform=platform, domain_login_username=user_name, 
+                                domain_login_password=password, customer_id=self.id, owner=self)
+                db.session.add(domain)
+                db.session.commit()
+                self.domain_count = self.domain_count + 1
+                flash('successfully domain added!, success')
+                return True
         else:
             domain = db.session.scalar(
             sa.select(Domain).where(Domain.domain_name == name))
             if domain is not None:
                 return 505
             domain = Domain(domain_name=name, domain_start_date=datetime.now(timezone.utc), 
-                             customer_id=self.id, owner=Customer)
-            self.domain_count = self.domain_count + 1
+                            domain_platform=platform, domain_login_username=user_name, 
+                            domain_login_password=password, customer_id=self.id, owner=self)
+            self.domain_count = 1
+            db.session.add(domain)
+            db.session.commit()
+            flash('successfully domain added!, success')
             return True
-    
+        
 
     def delete_api_count(self, api_count):
         self.api_call_count = self.api_call_count - api_count
         return True
     
-
-    def set_wordpress_auth(self, wordpress_password):
-        self.wordpress_auth = wordpress_password
-        return True
 
 class Domain(db.Model):
     id: so.Mapped[int] = so.mapped_column(primary_key=True)
@@ -202,6 +213,9 @@ class Domain(db.Model):
     customer_id: so.Mapped[int] = so.mapped_column(sa.ForeignKey(Customer.id),
                                                index=True)
     owner: so.Mapped[Customer] = so.relationship(back_populates='domains')
+    domain_platform: so.Mapped[Optional[str]] = so.mapped_column(sa.Enum('wordpress', name='domain_platform'), default='wordpress')
+    domain_login_username: so.Mapped[Optional[str]] = so.mapped_column(sa.String(120))
+    domain_login_password: so.Mapped[Optional[str]] = so.mapped_column(sa.String(120))
 
     def __repr__(self):
         return '<Domain {}>'.format(self.body)

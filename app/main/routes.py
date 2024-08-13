@@ -8,10 +8,12 @@ from langdetect import detect, LangDetectException
 from app import db, Config
 from app.main.forms import EditProfileForm, EmptyForm, ContactForm
 from app.models import Notification, Plan, Domain, Customer, Activity
+from flask import jsonify
 from app.translate import translate
 from app.main import bp
 from app import create_app, db
 from app.email import send_email
+from app.utils.wordpress_helpers import wp_domain,pages
 
 
 ### write a seperate route for home page
@@ -73,6 +75,8 @@ def edit_profile():
         current_user.username = form.username.data
         current_user.customer_email = form.email.data
         current_user.customer_phone = form.phone.data
+        if form.New_password.data != "":
+            current_user.set_password(form.New_password.data)
         db.session.commit()
         flash(_('Your changes have been saved.'))
         return redirect(url_for('main.edit_profile'))
@@ -83,6 +87,100 @@ def edit_profile():
     return render_template('old_layout/edit_profile.html', title=_('Edit Profile'),
                            form=form)
 
+
+@bp.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    if request.method == 'POST':
+        # Handle Plan Update
+        if 'plan' in request.form:
+            current_user.plan_id = request.form['plan']
+            db.session.commit()
+            flash('Your plan has been updated successfully!', 'success')
+            return redirect(url_for('main.settings'))
+    
+    # Render the settings page
+    domains =  Domain.query.filter_by(customer_id = current_user.id).all()
+    plan = Plan.query.filter_by(id=current_user.plan_id).first()
+    return render_template('home/settings.html', current_plan=plan, domains=domains)
+
+
+@bp.route('/update-plan', methods=['POST'])
+@login_required
+def update_plan():
+    new_plan_id = request.form['plan']
+    current_user.plan_id = new_plan_id
+    db.session.commit()
+    flash('Plan updated successfully!', 'success')
+    return redirect(url_for('main.settings'))
+
+
+@bp.route('/cancel-plan', methods=['POST'])
+@login_required
+def cancel_plan():
+    current_user.plan_id = 1  # Or you can set it to a default plan
+    db.session.commit()
+    flash('Your plan has been canceled.', 'info')
+    return redirect(url_for('main.settings'))
+
+
+@bp.route('/add-domain', methods=['POST'])
+@login_required
+def add_domain():
+    domain_name = request.form['domain']
+    platform = request.form['domain_platform']
+    username = request.form['domain_username']
+    password = request.form['domain_password']
+
+    if Domain.query.filter_by(domain_name=domain_name, customer_id=current_user.id).first():
+        flash('This domain is already registered.', 'warning')
+    else:
+        if current_user.add_domain(name=domain_name, platform=platform, user_name=username, 
+                                   password=password):
+            db.session.commit()
+            flash('Domain added successfully!', 'success')
+        else:
+            flash('Domain plan limit exceeded!', 'danger')
+    return redirect(url_for('main.settings'))
+
+
+@bp.route('/edit-domain/<int:domain_id>', methods=['POST'])
+@login_required
+def edit_domain(domain_id):
+    domain = Domain.query.get_or_404(domain_id)
+    name = request.form['domain_name']
+    platform = request.form['domain_platform']
+    username = request.form['domain_username']
+    password = request.form['domain_password']
+    if domain.customer_id != current_user.id:
+        flash('You do not have permission to edit this domain.', 'danger')
+        return redirect(url_for('main.settings'))
+    
+    domain.domain_name=name
+    domain.domain_platform=platform
+    domain.domain_login_username=username 
+    domain.domain_login_password=password
+
+    db.session.commit()
+    flash('Domain edited successfully.', 'success')
+    return redirect(url_for('main.settings'))
+
+
+
+@bp.route('/delete-domain/<int:domain_id>', methods=['POST'])
+@login_required
+def delete_domain(domain_id):
+    domain = Domain.query.get_or_404(domain_id)
+    if domain.customer_id != current_user.id:
+        flash('You do not have permission to delete this domain.', 'danger')
+        return redirect(url_for('main.settings'))
+    
+    db.session.delete(domain)
+    new_domain_count = current_user.domain_count - 1
+    current_user.domain_count = new_domain_count
+    db.session.commit()
+    flash('Domain deleted successfully.', 'success')
+    return redirect(url_for('main.settings'))
 
 
 @bp.route('/translate', methods=['POST'])
@@ -118,3 +216,26 @@ def notifications():
         'data': n.get_data(),
         'timestamp': n.timestamp
     } for n in notifications]
+
+
+
+@bp.route('/domain')
+@login_required
+def index():
+    domains =  Domain.query.filter_by(customer_id = current_user.id).all()
+    return render_template('old_layout/pages.html', domains=domains)
+
+@bp.route('/get_pages/<int:domain_id>')
+def get_pages(domain_id):
+    dm =  Domain.query.filter_by(id = domain_id).first()
+    domain = wp_domain(dm)
+    pages_list = domain.get_all_wordpress_pages()
+    return jsonify(pages_list)
+
+
+@bp.route('/get_posts/<int:domain_id>')
+def get_posts(domain_id):
+    dm =  Domain.query.filter_by(id = domain_id).first()
+    domain = wp_domain(dm)
+    posts_list = domain.get_all_wordpress_posts()
+    return jsonify(posts_list)

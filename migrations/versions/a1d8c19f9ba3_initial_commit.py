@@ -1,8 +1,8 @@
 """initial commit
 
-Revision ID: 7454ebe0f4a6
+Revision ID: a1d8c19f9ba3
 Revises: 
-Create Date: 2024-07-25 08:37:05.926175
+Create Date: 2024-08-11 13:46:47.823550
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '7454ebe0f4a6'
+revision = 'a1d8c19f9ba3'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -28,8 +28,8 @@ def upgrade():
     sa.PrimaryKeyConstraint('id')
     )
     with op.batch_alter_table('plan', schema=None) as batch_op:
-        batch_op.create_index(batch_op.f('ix_plan_plan_name'), ['plan_name'], unique=True)
-        batch_op.create_index(batch_op.f('ix_plan_plan_type'), ['plan_type'], unique=True)
+        batch_op.create_index(batch_op.f('ix_plan_plan_name'), ['plan_name'], unique=False)
+        batch_op.create_index(batch_op.f('ix_plan_plan_type'), ['plan_type'], unique=False)
 
     op.create_table('customer',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -61,6 +61,9 @@ def upgrade():
     sa.Column('domain_name', sa.String(length=120), nullable=False),
     sa.Column('domain_start_date', sa.DateTime(), nullable=True),
     sa.Column('customer_id', sa.Integer(), nullable=False),
+    sa.Column('domain_platform', sa.Enum('wordpress', name='domain_platform'), nullable=True),
+    sa.Column('domain_login_username', sa.String(length=120), nullable=True),
+    sa.Column('domain_login_password', sa.String(length=120), nullable=True),
     sa.ForeignKeyConstraint(['customer_id'], ['customer.id'], ),
     sa.PrimaryKeyConstraint('id')
     )

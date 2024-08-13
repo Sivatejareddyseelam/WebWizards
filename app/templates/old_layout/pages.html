@@ -1,0 +1,110 @@
+{% extends 'layouts/base-presentation.html' %}
+
+{% block content %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select Domain</title>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        #domain-select {
+            width: 300px;
+        }
+        .content-block {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #f9f9f9;
+            cursor: pointer;
+        }
+        .content-block.collapsed .meta-info-container {
+            display: none;
+        }
+        .content-block .meta-info-container {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h3>Select Domain</h3>
+    <select id="domain-select">
+        <option value="">Select a domain</option>
+        {% for domain in domains %}
+            <option value="{{ domain.id }}">{{ domain.domain_name }}</option>
+        {% endfor %}
+    </select>
+
+    <h4>Pages</h4>
+    <div id="pages-list"></div>
+
+    <h4>Posts</h4>
+    <div id="posts-list"></div>
+
+    <script>
+        $(document).ready(function() {
+            $('#domain-select').select2({
+                placeholder: "Select a domain",
+                allowClear: true
+            });
+
+            $('#domain-select').change(function() {
+                var domainId = $(this).val();
+                if (domainId) {
+                    // Fetch and display pages
+                    $.getJSON('/get_pages/' + domainId, function(data) {
+                        var pagesList = $('#pages-list');
+                        pagesList.empty();
+                        $.each(data, function(index, page) {
+                            var contentBlock = $('<div class="content-block collapsed"></div>');
+                            var contentHeader = $('<div><strong>URL:</strong> ' + page.slug + '</div>');
+                            var metaInfoContainer = $('<div class="meta-info-container"></div>');
+                            var metaInfoLabel = $('<div><strong>Meta Info:</strong></div>');
+                            var metaInfoText = $('<textarea rows="4" cols="50">' + page.meta_info + '</textarea>');
+
+                            metaInfoContainer.append(metaInfoLabel, metaInfoText);
+                            contentBlock.append(contentHeader, metaInfoContainer);
+                            pagesList.append(contentBlock);
+
+                            contentBlock.click(function() {
+                                $(this).toggleClass('collapsed');
+                            });
+                        });
+                    });
+
+                    // Fetch and display posts
+                    $.getJSON('/get_posts/' + domainId, function(data) {
+                        var postsList = $('#posts-list');
+                        postsList.empty();
+                        $.each(data, function(index, post) {
+                            var contentBlock = $('<div class="content-block collapsed"></div>');
+                            var contentHeader = $('<div><strong>Title:</strong> ' + post.slug + '</div>');
+                            var metaInfoContainer = $('<div class="meta-info-container"></div>');
+                            var metaInfoLabel = $('<div><strong>Meta Info:</strong></div>');
+                            var metaInfoText = $('<textarea rows="4" cols="50">' + post.meta_info + '</textarea>');
+
+                            metaInfoContainer.append(metaInfoLabel, metaInfoText);
+                            contentBlock.append(contentHeader, metaInfoContainer);
+                            postsList.append(contentBlock);
+
+                            contentBlock.click(function() {
+                                $(this).toggleClass('collapsed');
+                            });
+                        });
+                    });
+                } else {
+                    $('#pages-list').empty();
+                    $('#posts-list').empty();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+{% endblock content %}

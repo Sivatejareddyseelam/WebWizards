@@ -1,7 +1,7 @@
 from flask import request
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, TextAreaField
-from wtforms.validators import ValidationError, DataRequired, Length, Email
+from wtforms import StringField, SubmitField, TextAreaField, PasswordField
+from wtforms.validators import ValidationError, DataRequired, Length, Email, EqualTo
 import sqlalchemy as sa
 from flask_babel import _, lazy_gettext as _l
 from app import db
@@ -14,6 +14,9 @@ class EditProfileForm(FlaskForm):
                              validators=[DataRequired(), Email()])
     phone = StringField(_l('Phone'),
                              validators=[DataRequired()])
+    New_password = PasswordField(_l('New Password'))
+    New_password2 = PasswordField(
+        _l('Repeat New Password'), validators=[EqualTo('New_password')])
     submit = SubmitField(_l('Submit'))
 
     def __init__(self, original_username, *args, **kwargs):
@@ -38,3 +41,9 @@ class ContactForm(FlaskForm):
 
 class EmptyForm(FlaskForm):
     submit = SubmitField('Submit')
+
+
+class AddDomainForm(FlaskForm):
+    domain_url = StringField(_l('Domain URL'), validators=[DataRequired()])
+    domain_username = StringField(_l('Domain User Name'), validators=[DataRequired()])
+    domain_password = StringField(_l('Domain Password'), validators=[DataRequired()])
